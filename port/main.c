@@ -326,7 +326,7 @@ int main(void)
     {
         ecx336cn_init();
     }
-
+#if 0
     LOG("OV5540"); assert_blink_num = 4;
     {
         ov5640_init();
@@ -336,6 +336,7 @@ int main(void)
     {
         flash_init();
     }
+#endif
 
     LOG("DONE"); assert_blink_num = 10;
     {
