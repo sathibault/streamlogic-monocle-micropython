@@ -78,7 +78,7 @@ extern uint32_t _heap_start;
 extern uint32_t _heap_end;
 
 /** Encode the number of the peripheral that starts as a blinking pattern. */
-uint8_t assert_blink_num;
+static uint8_t assert_blink_num;
 
 /**
  * @brief Garbage collection route for nRF.
@@ -138,34 +138,25 @@ NORETURN void __assert_func(const char *file, int line, const char *func, const 
     }
 }
 
-static void check_charging_status(void)
-{
-    uint32_t err;
-
-    if (max77654_is_charging()) {
-
-        // Setup an RTC to wake-up from power-off state
-        nrfx_rtc_config_t config = NRFX_RTC_DEFAULT_CONFIG;
-        nrfx_rtc_t rtc0 = NRFX_RTC_INSTANCE(0);
-        err = nrfx_rtc_init(&rtc0, &config, NULL);
-        assert(err = NRFX_SUCCESS);
-        err = nrfx_rtc_init(&rtc0, &config, NULL);
-        assert(err = NRFX_SUCCESS);
-
-        LOG("charging is ongoing, going to sleep");
-        err = sd_power_system_off();
-        assert(err = NRFX_SUCCESS);
-    }
-}
-
-void timer_task_charging_status(void)
+void charging_status_timer_task(void)
 {
     static uint8_t prescaler = 0;
 
-    // Divide the timer frequency a bit.
-    if (prescaler++ == 0) // let it overflow
+    // Divide the timer frequency a bit, let it overflow
+    // then check for the PMIC charge status.
+    if (prescaler++ == 0 && max77654_is_charging())
     {
-        check_charging_status();
+        uint32_t err;
+
+        // Wakeup from events of IQS620 touch controller .
+        nrf_gpio_cfg_sense_input(IQS620_TOUCH_RDY_PIN, NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_SENSE_LOW);
+
+        // Power everything around off.
+        max77654_power_off();
+
+        // Power ourself off
+        err = sd_power_system_off();
+        assert(err = NRFX_SUCCESS);
     }
 }
 
@@ -182,6 +173,12 @@ int main(void)
 
     // Start the drivers that only rely on the MCU peripherals.
 
+    LOG("SOFTDEVICE");
+    {
+        ble_enable_softdevice();
+        ble_init();
+    }
+
     LOG("NRFX");
     {
         // Init the built-in peripherals
@@ -192,19 +189,6 @@ int main(void)
 
     // Turn on the SoftDevice early to allow use of softdevice-dependent calls
     // before the full Bluetooth Low Energy stack is setup (to save power).
-
-    LOG("SOFTDEVICE");
-    {
-        ble_enable_softdevice();
-    }
-
-    // Start the generic timer, used for various periodic software tasks.
-    // Other drivers will be adding callbacks to it
-
-    LOG("TIMER");
-    {
-        timer_init();
-    }
 
     // Setup the GPIO states before powering-on the chips,
     // to provide particular pin state at each chip's bootup.
@@ -280,7 +264,9 @@ int main(void)
 
     LOG("BATTERY");
     {
-        timer_add_task(check_charging_status);
+        // Periodically check the charger connection status.
+        charging_status_timer_task();
+        timer_add_task(charging_status_timer_task);
 
         battery_init(MAX77654_ADC_PIN);
     }
@@ -306,7 +292,6 @@ int main(void)
 
     LOG("BLE");
     {
-        ble_init();
     }
 
     // Now we can setup the various peripherals over SPI, starting by the FPGA
@@ -327,7 +312,7 @@ int main(void)
         ecx336cn_init();
     }
 
-    LOG("OV5540"); assert_blink_num = 4;
+    LOG("OV5640"); assert_blink_num = 4;
     {
         ov5640_init();
     }
@@ -344,6 +329,10 @@ int main(void)
 
         // Let the user know everything is ready and that the device
         max77654_led_green(true);
+
+        // Start the generic timer, used for various periodic software tasks.
+        // Other drivers added function callbacks to its task table above.
+        timer_init();
     }
 
     // Initialise the stack pointer for the main thread
@@ -360,9 +349,6 @@ int main(void)
 
     // Initialise the readline module for REPL
     readline_init0();
-
-    // If main.py exits, fallback to a REPL.
-    //pyexec_frozen_module("main.py");
 
     // REPL mode can change, or it can request a soft reset
     for (int stop = false; !stop;)
