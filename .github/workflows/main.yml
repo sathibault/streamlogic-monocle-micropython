@@ -2,7 +2,7 @@ name: build_on_push
 
 on:
   push:
-    branches: [ "main", "develop_branch" ]
+    branches: [ "main", "develop_branch", "streamlogic" ]
   pull_request:
     branches: [ "main", "develop_branch" ]
   workflow_dispatch:
