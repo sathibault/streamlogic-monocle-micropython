@@ -40,6 +40,7 @@
 
 #include "nrfx_log.h"
 #include "nrf_sdm.h"
+#include "nrf_power.h"
 #include "nrfx_twi.h"
 #include "nrfx_spim.h"
 #include "nrfx_systick.h"
@@ -109,19 +110,14 @@ NORETURN void nlr_jump_fail(void *val)
     assert(!"exception raised without any handlers for it");
 }
 
-void ble_on_connect(void)
-{
-    max77654_led_green(false);
-}
-
-void assert_blink(uint8_t num)
+void blink(uint8_t num)
 {
     for (size_t i = 0; i < num; i++)
     {
         max77654_led_red(true);
-        nrfx_systick_delay_ms(100);
+        nrfx_systick_delay_ms(50);
         max77654_led_red(false);
-        nrfx_systick_delay_ms(200);
+        nrfx_systick_delay_ms(100);
     }
 }
 
@@ -133,30 +129,31 @@ NORETURN void __assert_func(const char *file, int line, const char *func, const 
         // repeatedly display the error message, which helps a bit with RTT
         LOG("%s:%d: %s: %s", file, line, func, expr);
 
-        assert_blink(assert_blink_num);
+        blink(assert_blink_num);
         nrfx_systick_delay_ms(1000);
     }
 }
 
-void charging_status_timer_task(void)
+void charge_status_timer(void)
 {
-    static uint8_t prescaler = 0;
-
     // Divide the timer frequency a bit, let it overflow
     // then check for the PMIC charge status.
-    if (prescaler++ == 0 && max77654_is_charging())
+    if (max77654_is_charging())
     {
-        uint32_t err;
+        // Power everything around off.
+        max77654_power_off();
+
+        // Warn that we are going to sleep
+        max77654_rail_vled(true);
+        blink(1);
+        max77654_rail_vled(false);
 
         // Wakeup from events of IQS620 touch controller .
         nrf_gpio_cfg_sense_input(IQS620_TOUCH_RDY_PIN, NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_SENSE_LOW);
 
-        // Power everything around off.
-        max77654_power_off();
-
-        // Power ourself off
-        err = sd_power_system_off();
-        assert(err = NRFX_SUCCESS);
+        // Power the SoftDevice and the whole chip off.
+        sd_power_system_off();
+        nrf_power_system_off(NRF_POWER);
     }
 }
 
@@ -173,18 +170,13 @@ int main(void)
 
     // Start the drivers that only rely on the MCU peripherals.
 
-    LOG("SOFTDEVICE");
+    LOG("SYSTEM");
     {
+        // Seems required to power the device off.
         ble_enable_softdevice();
-        ble_init();
-    }
 
-    LOG("NRFX");
-    {
         // Init the built-in peripherals
         nrfx_systick_init();
-        nrfx_gpiote_init(NRFX_GPIOTE_DEFAULT_CONFIG_IRQ_PRIORITY);
-        nrfx_saadc_init(NRFX_SAADC_DEFAULT_CONFIG_IRQ_PRIORITY);
     }
 
     // Turn on the SoftDevice early to allow use of softdevice-dependent calls
@@ -251,24 +243,37 @@ int main(void)
         max77654_init();
     }
 
-    // Initiate user-input peripherals, which do not make
-    // sense until everything else is setup.
-
-    LOG("IQS620"); assert_blink_num = 5;
-    {
-        iqs620_init();
-    }
-
     // Initialize the battery now that the MAX77654 is configured,
     // and check the battery charge status immediately.
 
     LOG("BATTERY");
     {
+        // The battery module needs the ADC setup.
+        nrfx_saadc_init(NRFX_SAADC_DEFAULT_CONFIG_IRQ_PRIORITY);
+
         // Periodically check the charger connection status.
-        charging_status_timer_task();
-        timer_add_task(charging_status_timer_task);
+        charge_status_timer();
+        timer_add_task(timer_500ms, charge_status_timer);
 
         battery_init(MAX77654_ADC_PIN);
+    }
+
+    // Start by the Bluetooth driver, which will let the user scan for
+    // a network, and by the time the negociation would happen, and the
+    // host application gets started, this firmware would be likely ready.
+
+    LOG("BLE");
+    {
+        ble_init();
+    }
+
+    // Initiate user-input peripherals, which do not make
+    // sense until everything else is setup.
+
+    LOG("IQS620"); assert_blink_num = 5;
+    {
+        nrfx_gpiote_init(NRFX_GPIOTE_DEFAULT_CONFIG_IRQ_PRIORITY);
+        iqs620_init();
     }
 
     // power on everything and wait 
@@ -284,14 +289,6 @@ int main(void)
         nrfx_systick_delay_ms(300);
         max77654_rail_10v(true);
         nrfx_systick_delay_ms(10);
-    }
-
-    // Start by the Bluetooth driver, which will let the user scan for
-    // a network, and by the time the negociation would happen, and the
-    // host application gets started, this firmware would be likely ready.
-
-    LOG("BLE");
-    {
     }
 
     // Now we can setup the various peripherals over SPI, starting by the FPGA
@@ -315,7 +312,7 @@ int main(void)
 #if 0
     LOG("OV5640"); assert_blink_num = 4;
     {
-        ov5640_init();
+        //ov5640_init();
     }
 #endif
 
@@ -334,7 +331,7 @@ int main(void)
 
         // Start the generic timer, used for various periodic software tasks.
         // Other drivers added function callbacks to its task table above.
-        timer_init();
+        timer_start();
     }
 
     // Initialise the stack pointer for the main thread
