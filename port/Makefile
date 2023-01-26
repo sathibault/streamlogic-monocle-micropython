@@ -136,6 +136,8 @@ SRC += modules/device.c
 SRC += modules/time.c
 SRC += modules/touch.c
 
+SRC += modules/modrvgr.c
+
 SRC += ../segger_rtt/SEGGER_RTT.c
 SRC += ../segger_rtt/SEGGER_RTT_Syscalls_GCC.c
 SRC += ../segger_rtt/SEGGER_RTT_printf.c
@@ -192,6 +194,7 @@ SRC_QSTR += $(SRC) $(SRC_MOD)
 
 OBJ += $(PY_O)
 OBJ += $(addprefix build/, $(SRC:.c=.o))
+OBJ += $(addprefix build/, $(SRC_CXX:.cpp=.o))
 
 all: ${FIRMWARE_HEX} ${FIRMWARE_ZIP}
 
