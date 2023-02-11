@@ -14,6 +14,7 @@
 #define MAX_NLX 0x7fff // 9.4
 #define MAX_SPANX 0x7fff // 9.4
 #define MAX_CLRX 0xff // 4.4
+#define MIN_DX 0x10
 
 #define XFX(x) (x<<XFRAC)
 #define XFX_INT(x) (x>>XFRAC)
@@ -422,8 +423,12 @@ static void sort_runs(uint16_t *runs, uint8_t *clr, int n) {
   }
   for (int i = 1; i < n; i++) {
     int ri = i<<1;
-    if (runs[ri-1] >= runs[ri])
-      runs[ri-1] = runs[ri]-1;
+    int dx = (int)runs[ri]-(int)runs[ri-1];
+    if (dx < MIN_DX) {
+      runs[ri] = runs[ri-1]+1;
+      if (runs[ri] > runs[ri+1])
+	runs[ri] = runs[ri+1]; // will be discarded later
+    }
   }
 }
 
@@ -498,6 +503,10 @@ static mp_obj_t generate(mp_obj_t addr_in, mp_obj_t list_in) {
       mp_obj_list_append(return_list, MP_OBJ_NEW_SMALL_INT(cmd>>8));
       mp_obj_list_append(return_list, MP_OBJ_NEW_SMALL_INT(cmd&0xff));
       for (i = 0; i < ri; i+=2) {
+	s = runs[i+1] - runs[i];
+	if (s < MIN_DX)
+	  continue;
+
 	dx = runs[i] - curX;
 	while (dx > MAX_DX) {
 	  cmd = 0x8000|MAX_DX;
@@ -511,7 +520,6 @@ static mp_obj_t generate(mp_obj_t addr_in, mp_obj_t list_in) {
 	  mp_obj_list_append(return_list, MP_OBJ_NEW_SMALL_INT(cmd&0xff));
 	}
 	
-	s = runs[i+1] - runs[i];
 	if (s > MAX_CLRX) {
 	  cmd = (((uint16_t)clr[i>>1])<<8)|MAX_CLRX;
 	  s -= MAX_CLRX;
