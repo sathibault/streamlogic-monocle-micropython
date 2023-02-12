@@ -77,6 +77,8 @@ static void fill_edges(uint16_t *pts, int n, int y0, edge_t **edges)
     j = i;
     do {
       j += 2;
+      if (j == n)
+	j = 2; // skip first point which is same as last
       Y3 = pts[j+1];
       if (Y2 != Y3)
 	break;
