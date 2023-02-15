@@ -26,3 +26,10 @@ jobs:
       - name: Build the firmware
         run: |
           make
+
+      - name: Upload release.hex
+        uses: actions/upload-artifact@v3
+        with:
+          name: firmware.hex
+          path: port/build/firmware.hex
+          retention-days: 5
