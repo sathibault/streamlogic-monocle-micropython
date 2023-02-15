@@ -185,7 +185,7 @@ OBJ += $(addprefix build/, $(SRC_C:.c=.o))
 # Link required libraries
 LIB += -lm -lc -lnosys -lgcc
 
-all: build/application.hex
+all: build/firmware.hex
 
 build/application.hex: build/application.elf
 	$(OBJCOPY) -O ihex $< $@
@@ -200,9 +200,9 @@ flash: build/application.hex
 	nrfjprog --program $< -f nrf52 --verify
 	nrfjprog --reset -f nrf52
 
-firmware.hex: build/application.hex
+build/firmware.hex: build/application.hex
 	nrfutil settings generate --family NRF52 --application build/application.hex --application-version 0 --bootloader-version 0 --bl-settings-version 2 build/settings.hex
-	mergehex -m build/settings.hex build/application.hex softdevice/s132_nrf52_7.3.0_softdevice.hex bootloader/build/nrf52832_xxaa_s132.hex -o firmware.hex
+	mergehex -m build/settings.hex build/application.hex softdevice/s132_nrf52_7.3.0_softdevice.hex bootloader/build/nrf52832_xxaa_s132.hex -o $@
 
 release: clean build/application.hex
 	nrfutil settings generate --family NRF52 --application build/application.hex --application-version 0 --bootloader-version 0 --bl-settings-version 2 build/settings.hex

@@ -31,5 +31,5 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: firmware.hex
-          path: port/build/firmware.hex
+          path: build/firmware.hex
           retention-days: 5
