@@ -69,7 +69,7 @@ static const nrfx_spim_t spi_bus_2 = NRFX_SPIM_INSTANCE(2);
 
 // ECX336CN datasheet section 10.1
 uint8_t const ecx336cn_config[] = {
-    [0x00] = 0x9E, // [0]=0 -> enter power save mode
+    [0x00] = 0x92, // [0]=0 -> enter power save mode
     [0x01] = 0x20,
     /* * */
     [0x03] = 0x20, // 1125
@@ -314,7 +314,7 @@ int main(void)
         nrf_gpio_cfg_output(DISPLAY_CS_PIN);
         nrf_gpio_pin_set(DISPLAY_CS_PIN);
 
-        ecx336cn_write_byte(0x00, 0x9E); // enter power saving mode (YUV)
+        ecx336cn_write_byte(0x00, 0x92); // enter power saving mode (YUV)
         // it is now possible to turn off the 10V rail
 
         for (size_t i = 0; i < sizeof(ecx336cn_config) / sizeof(*ecx336cn_config); i++)
@@ -323,7 +323,7 @@ int main(void)
         }
 
         // the 10V power rail needs to be turned back on first
-        ecx336cn_write_byte(0x00, 0x9F); // exit power saving mode (YUV)
+        ecx336cn_write_byte(0x00, 0x93); // exit power saving mode (YUV)
     }
 
 #if 0
