@@ -24,6 +24,50 @@
 
 #include "monocle.h"
 #include "py/runtime.h"
+#include "py/objstr.h"
+
+#include "fpga-lib.h"
+
+
+STATIC MP_DEFINE_STR_OBJ(camera_str_obj, "camera");
+STATIC MP_DEFINE_STR_OBJ(framebuf_str_obj, "frame buffer");
+STATIC MP_DEFINE_STR_OBJ(fbout0_str_obj, "fb out-0");
+STATIC MP_DEFINE_STR_OBJ(fbout1_str_obj, "fb out-1");
+STATIC MP_DEFINE_STR_OBJ(readout_str_obj, "image readout");
+STATIC MP_DEFINE_STR_OBJ(graphics_ov_str_obj, "graphics overlay");
+STATIC MP_DEFINE_STR_OBJ(text_ov_str_obj, "text overlay");
+
+STATIC mp_obj_t feature_strings[] = {
+  MP_ROM_PTR(&camera_str_obj),
+  MP_ROM_PTR(&framebuf_str_obj),
+  MP_ROM_PTR(&fbout0_str_obj),
+  MP_ROM_PTR(&fbout1_str_obj),
+  MP_ROM_PTR(&readout_str_obj),
+  MP_ROM_PTR(&graphics_ov_str_obj),
+  MP_ROM_PTR(&text_ov_str_obj)
+};
+
+STATIC mp_obj_t fpga_features() {
+  int i, n;
+
+  fpga_discovery();
+
+  n = 0;
+  for (i = 0; i < MAX_FEATURES; i++) {
+    if (fpga_feature_addrs[i] != 0)
+      n += 1;
+  }
+
+  mp_obj_t dict = mp_obj_new_dict(n);
+  for (i = 0; i < MAX_FEATURES; i++) {
+    if (fpga_feature_addrs[i] != 0)
+      mp_obj_dict_store(dict, feature_strings[i], MP_OBJ_NEW_SMALL_INT(fpga_feature_addrs[i]));
+  }
+
+  return dict;
+}
+
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(fpga_features_obj, fpga_features);
 
 STATIC mp_obj_t fpga_read(mp_obj_t addr_16bit, mp_obj_t n)
 {
@@ -148,6 +192,7 @@ MP_DEFINE_CONST_FUN_OBJ_0(fpga_status_obj, &fpga_status);
 
 STATIC const mp_rom_map_elem_t fpga_module_globals_table[] = {
 
+    {MP_ROM_QSTR(MP_QSTR_features), MP_ROM_PTR(&fpga_features_obj)},
     {MP_ROM_QSTR(MP_QSTR_write), MP_ROM_PTR(&fpga_write_obj)},
     {MP_ROM_QSTR(MP_QSTR_read), MP_ROM_PTR(&fpga_read_obj)},
     {MP_ROM_QSTR(MP_QSTR_power), MP_ROM_PTR(&fpga_power_obj)},
