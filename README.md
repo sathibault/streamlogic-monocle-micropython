@@ -6,13 +6,15 @@ Many functions of the Moncole are controlled by the FPGA, and the FPGA exposes a
 
 ## Software requirements
 
-You will need to install a number of tools to build the FPGA bitmap and MCU/FPGA programming.
-
-1. For firmware programming, install the [nRF Command Line Tools](https://www.nordicsemi.com/Products/Development-tools/nrf-command-line-tools).
+You will need to install a couple of tools to build the FPGA bitmap and FPGA programming.
 
 1. For FPGA build and programming, install the [Gowin IDE](https://www.gowinsemi.com/en/support/download_eda/).
 
 1. Install the StreamLogic command-line helper utilities (optional, requires Python3): `pip install sxlogic`
+
+## Hardware requirements
+
+The Monocle team is working on the ability program the FPGA via Bluetooth.  Until then, a [Gowin programming cable](https://www.gowinsemi.com/en/support/devkits_detail/3/) is required to program the FPGA.  If you have the devkit, the programmer cable will plug right onto the board.  If you have an assembled Monocle, it must be partially disassembled, and could be difficult to program this way.
 
 ## StreamLogic FPGA design walkthrough
 
@@ -73,12 +75,27 @@ Click the green play-like button to program the FPGA, and your done!
 
 The pre-installed firmware on the Monocle will not work with the FPGA programs produced by StreamLogic because FPGA <-> MicroController API is not the same.  Follow these instructions to update the Monocle's firmware.
 
-1. Download the latest `.hex` file from the [releases page](https://github.com/sathibault/streamlogic-monocle-micropython/releases).
+1. Make sure your Monocle is well charged before starting an update.
 
-1. Connect your debugger as described [here](https://docs.brilliantmonocle.com/monocle/monocle/#manually-programming).
+1. Download both the Brilliant App as well as the nRF Connect App.
+    - Get the **Brilliant App** on Apple [AppStore](https://apps.apple.com/us/app/monocle-by-brilliant/id1632203938) or Google [Play Store](https://play.google.com/store/apps/details?id=com.brilliantmonocle).
+    - Get the **nRF Connect App** on Apple [AppStore](https://apps.apple.com/us/app/nrf-connect-for-mobile/id1054362403) or Google [Play Store](https://play.google.com/store/apps/details?id=no.nordicsemi.android.mcp&hl=en&gl=US).
 
-1. Flash your device using the command:
+1. Download the firmware the streamlogic-monocle-micropython [releases page](https://github.com/sathibault/streamlogic-monocle-micropython/releases), and save it to your mobile.
 
-```sh
-nrfjprog --program *.hex --chiperase -f nrf52 --verify --reset
-```
+1. Connect to the Monocle from within the Brilliant App, and type the commands:
+
+    ```python
+    import update
+    update.micropython()
+    ```
+
+1. Switch to the nRF Connect App, and connect to **"DFUTarg"**.
+
+1. Switch to the DFU tab, select your file, and start the update.
+
+1. Keep Monocle close, and don't switch app while the update is in progress.
+
+Once the update is complete, Monocle will restart, and will be running the new firmware.
+
+If the update process stops for any reason, simply put Monocle back into the case, search for **"DFUTarg"** from within the nRF Connect App, and try again.
