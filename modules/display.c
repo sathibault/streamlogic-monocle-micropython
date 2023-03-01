@@ -22,6 +22,7 @@
  */
 
 #include <stddef.h>
+#include <math.h>
 
 #include "py/obj.h"
 #include "py/objarray.h"
@@ -29,9 +30,11 @@
 #include "py/mperrno.h"
 
 #include "nrfx_log.h"
+#include "nrf_gpio.h"
 #include "nrfx_systick.h"
 
-#include "math.h"
+#include "display-config.h"
+
 #include "font.h"
 
 #define FPGA_ADDR_ALIGN 128
@@ -91,6 +94,25 @@ size_t obj_num;
 
 static uint8_t const *font = font_50;
 static int16_t glyph_gap_width = 2;
+
+
+STATIC mp_obj_t display_power_on() {
+  // Enable, and setup the display
+  nrf_gpio_pin_write(DISPLAY_RESET_PIN, true);
+  nrfx_systick_delay_ms(1);
+
+  for (size_t i = 0;
+       i < sizeof(display_config) / sizeof(display_config_t);
+       i++)
+    {
+      uint8_t command[2] = {display_config[i].address,
+			    display_config[i].value};
+      spi_write(DISPLAY, command, 2, false);
+    }
+  return mp_obj_new_bool(true);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(display_power_on_obj, display_power_on);
+
 
 STATIC mp_obj_t display_brightness(mp_obj_t brightness)
 {
@@ -636,6 +658,7 @@ MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(display_vline_obj, 4, 4, display_vline);
 
 STATIC const mp_rom_map_elem_t display_module_globals_table[] = {
 
+    {MP_ROM_QSTR(MP_QSTR_power_on), MP_ROM_PTR(&display_power_on_obj)},
     {MP_ROM_QSTR(MP_QSTR_fill), MP_ROM_PTR(&display_fill_obj)},
     {MP_ROM_QSTR(MP_QSTR_line), MP_ROM_PTR(&display_line_obj)},
     {MP_ROM_QSTR(MP_QSTR_text), MP_ROM_PTR(&display_text_obj)},

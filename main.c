@@ -28,7 +28,6 @@
 
 #include "monocle.h"
 #include "touch.h"
-#include "config-tables.h"
 
 #include "genhdr/mpversion.h"
 #include "mpconfigport.h"
@@ -56,6 +55,7 @@
 #include "nrfx_systick.h"
 #include "nrfx_rtc.h"
 #include "nrfx.h"
+
 
 nrf_nvic_state_t nrf_nvic_state = {{0}, 0};
 
@@ -592,66 +592,9 @@ int main(void)
         nrf_gpio_pin_write(FPGA_CS_INT_MODE_PIN, true);
     }
 
-    // Setup the camera
-    {
-        // TODO why is this delay needed?
-        nrfx_systick_delay_ms(500);
+    // TODO why is this delay needed?
+    nrfx_systick_delay_ms(500);
 
-        // Start the camera clock
-        uint8_t command[2] = {0x10, 0x09};
-        spi_write(FPGA, command, 2, false);
-
-        // Reset sequence taken from Datasheet figure 2-3
-        nrf_gpio_pin_write(CAMERA_RESET_PIN, false);
-        nrf_gpio_pin_write(CAMERA_SLEEP_PIN, true);
-        nrfx_systick_delay_ms(5); // t2
-        nrf_gpio_pin_write(CAMERA_SLEEP_PIN, false);
-        nrfx_systick_delay_ms(1); // t3
-        nrf_gpio_pin_write(CAMERA_RESET_PIN, true);
-        nrfx_systick_delay_ms(20); // t4
-
-        // Read the camera CID (one of them)
-        i2c_response_t resp = i2c_read(CAMERA_I2C_ADDRESS, 0x300A, 0xFF);
-        if (resp.fail || resp.value != 0x56)
-        {
-            // TODO add entry in health monitor if camera didn't initialise
-            NRFX_LOG_ERROR("Error: Camera not found.");
-            monocle_set_led(RED_LED, true);
-        }
-
-        // Software reset
-        i2c_write(CAMERA_I2C_ADDRESS, 0x3008, 0xFF, 0x82);
-        nrfx_systick_delay_ms(5);
-
-        // Send the default configuration
-        for (size_t i = 0;
-             i < sizeof(camera_config) / sizeof(camera_config_t);
-             i++)
-        {
-            i2c_write(CAMERA_I2C_ADDRESS,
-                      camera_config[i].address,
-                      0xFF,
-                      camera_config[i].value);
-        }
-
-        // Put the camera to sleep
-        nrf_gpio_pin_write(CAMERA_SLEEP_PIN, true);
-    }
-
-    // Enable, and setup the display
-    {
-        nrf_gpio_pin_write(DISPLAY_RESET_PIN, true);
-        nrfx_systick_delay_ms(1);
-
-        for (size_t i = 0;
-             i < sizeof(display_config) / sizeof(display_config_t);
-             i++)
-        {
-            uint8_t command[2] = {display_config[i].address,
-                                  display_config[i].value};
-            spi_write(DISPLAY, command, 2, false);
-        }
-    }
 
     // Setup touch interrupt
     {

@@ -27,14 +27,15 @@ import bluetooth
 import fpga
 import time
 
+def power_on():
+  __camera.power_on()
+
 def overlay(enable):
   if enable == True:
     __camera.wake()
-    fpga.write(0x1005, "")
-    fpga.write(0x3005, "")
+    __camera.command(5)
   else:
-    fpga.write(0x3004, "")
-    fpga.write(0x1004, "")
+    __camera.command(4)
     time.sleep_ms(100);
     __camera.sleep()
 

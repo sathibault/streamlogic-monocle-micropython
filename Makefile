@@ -113,12 +113,16 @@ SRC_C += micropython/extmod/utime_mphal.c
 SRC_C += modules/camera.c
 SRC_C += modules/device.c
 SRC_C += modules/display.c
+SRC_C += modules/fpgalib.c
 SRC_C += modules/fpga.c
 SRC_C += modules/led.c
 SRC_C += modules/bluetooth.c
 SRC_C += modules/time.c
 SRC_C += modules/touch.c
 SRC_C += modules/update.c
+
+SRC_C += modules/vgr2dlib.c
+SRC_C += modules/modgraphics.c
 
 SRC_C += segger/SEGGER_RTT_printf.c
 SRC_C += segger/SEGGER_RTT_Syscalls_GCC.c
@@ -183,7 +187,7 @@ OBJ += $(addprefix build/, $(SRC_C:.c=.o))
 # Link required libraries
 LIB += -lm -lc -lnosys -lgcc
 
-all: build/application.hex
+all: build/firmware.hex
 
 build/application.hex: build/application.elf
 	$(OBJCOPY) -O ihex $< $@
@@ -198,10 +202,13 @@ flash: build/application.hex
 	nrfjprog --program $< -f nrf52 --verify
 	nrfjprog --reset -f nrf52
 
+build/firmware.hex: build/application.hex
+	nrfutil settings generate --family NRF52 --application build/application.hex --application-version 0 --bootloader-version 0 --bl-settings-version 2 build/settings.hex
+	hexmerge.py --overlap=ignore --output=$@ build/settings.hex build/application.hex softdevice/s132_nrf52_7.3.0_softdevice.hex bootloader/build/nrf52832_xxaa_s132.hex
+
 release: clean build/application.hex
 	nrfutil settings generate --family NRF52 --application build/application.hex --application-version 0 --bootloader-version 0 --bl-settings-version 2 build/settings.hex
-	mergehex -m build/settings.hex build/application.hex softdevice/s132_nrf52_7.3.0_softdevice.hex bootloader/build/nrf52832_xxaa_s132.hex -o build/monocle-micropython-$(BUILD_VERSION).hex
+	hexmerge.py --overlap=ignore --output=build/monocle-micropython-$(BUILD_VERSION).hex build/settings.hex build/application.hex softdevice/s132_nrf52_7.3.0_softdevice.hex bootloader/build/nrf52832_xxaa_s132.hex
 	nrfutil pkg generate --hw-version 52 --application-version 0 --application build/application.hex --sd-req 0x0124 --key-file bootloader/published_privkey.pem build/monocle-micropython-$(BUILD_VERSION).zip
-	nrfutil pkg generate --hw-version 52 --application-version 0 --application build/application.hex --sd-req 0x0124 --key-file bootloader/published_privkey.pem build/monocle-micropython-$(BUILD_VERSION)-next.zip
 
 include micropython/py/mkrules.mk
