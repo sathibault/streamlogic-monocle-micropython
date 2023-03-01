@@ -113,7 +113,7 @@ SRC_C += micropython/extmod/utime_mphal.c
 SRC_C += modules/camera.c
 SRC_C += modules/device.c
 SRC_C += modules/display.c
-SRC_C += modules/fpga-lib.c
+SRC_C += modules/fpgalib.c
 SRC_C += modules/fpga.c
 SRC_C += modules/led.c
 SRC_C += modules/bluetooth.c
@@ -121,7 +121,8 @@ SRC_C += modules/time.c
 SRC_C += modules/touch.c
 SRC_C += modules/update.c
 
-SRC_C += modules/modrvgr.c
+SRC_C += modules/vgr2dlib.c
+SRC_C += modules/modgraphics.c
 
 SRC_C += segger/SEGGER_RTT_printf.c
 SRC_C += segger/SEGGER_RTT_Syscalls_GCC.c

@@ -8,7 +8,7 @@ Many functions of the Moncole are controlled by the FPGA, and the FPGA exposes a
 
 You will need to install a couple of tools to build the FPGA bitmap and FPGA programming.
 
-1. For FPGA build and programming, install the [Gowin IDE](https://www.gowinsemi.com/en/support/download_eda/).
+1. For FPGA build and programming, install the [Gowin EDA Standard Edition](https://www.gowinsemi.com/en/support/download_eda/) software (_not the educational_).  You will have to register and request a free license to use the Standard Edition which is required for the specific FPGA Monocle uses.
 
 1. Install the StreamLogic command-line helper utilities (optional, requires Python3): `pip install sxlogic`
 
@@ -36,7 +36,7 @@ That will bring up the properties dialog where you can change the name and **ens
 
 Click **Done** to close the properties dialog.
 
-Add the "monocle-minimal" example to the workspace by clicking on the "hamburg" menu, in the top-right corner, and following the sub-menus as shown here:
+Add the "monocle-minimal" example to the workspace by clicking on the "hamburger" menu (stacked bars), in the top-right corner, and following the sub-menus as shown here:
 ![Import](images/streamlogic-import-monocle.png)
 
 When you click moncole-minimal, the import code is attached to your cursor and you can click to place the code anywhere in the workspace.

@@ -26,7 +26,7 @@
 #include "py/runtime.h"
 #include "py/objstr.h"
 
-#include "fpga-lib.h"
+#include "fpgalib.h"
 
 
 STATIC MP_DEFINE_STR_OBJ(camera_str_obj, "camera");

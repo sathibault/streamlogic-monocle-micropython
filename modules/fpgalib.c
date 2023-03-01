@@ -1,5 +1,5 @@
 #include "monocle.h"
-#include "fpga-lib.h"
+#include "fpgalib.h"
 
 // Dyamically discovered features available on FPGA
 uint8_t fpga_feature_addrs[MAX_FEATURES] = {0};
@@ -71,4 +71,12 @@ bool fpga_has_feature(fpga_feat_t feat) {
 uint8_t fpga_feature_dev(fpga_feat_t feat) {
   fpga_discovery();
   return fpga_feature_addrs[feat];
+}
+
+uint8_t fpga_graphics_dev() {
+  return fpga_feature_dev(graphics_ov_feat);
+}
+
+void fpga_write_internal(uint8_t *buf, unsigned int len, bool hold) {
+  spi_write(FPGA, buf, len, hold);
 }

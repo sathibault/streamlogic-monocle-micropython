@@ -28,7 +28,7 @@
 
 #include "monocle.h"
 #include "camera-config.h"
-#include "fpga-lib.h"
+#include "fpgalib.h"
 
 
 STATIC mp_obj_t camera_power_on() {
@@ -76,6 +76,18 @@ STATIC mp_obj_t camera_power_on() {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(camera_power_on_obj, camera_power_on);
 
+STATIC mp_obj_t camera_command(mp_obj_t cmd) {
+  // Start the camera clock
+  if (!fpga_has_feature(camera_feat))
+    mp_raise_ValueError(MP_ERROR_TEXT("Camera not available"));
+
+  uint8_t cam_dev = fpga_feature_dev(camera_feat);
+  uint8_t command[2] = {cam_dev, mp_obj_get_int(cmd)};
+  spi_write(FPGA, command, 2, false);
+  return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(camera_command_obj, camera_command);
+
 STATIC mp_obj_t camera_sleep(void)
 {
     nrf_gpio_pin_write(CAMERA_SLEEP_PIN, true);
@@ -95,6 +107,7 @@ STATIC const mp_rom_map_elem_t camera_module_globals_table[] = {
     {MP_ROM_QSTR(MP_QSTR_power_on), MP_ROM_PTR(&camera_power_on_obj)},
     {MP_ROM_QSTR(MP_QSTR_sleep), MP_ROM_PTR(&camera_sleep_obj)},
     {MP_ROM_QSTR(MP_QSTR_wake), MP_ROM_PTR(&camera_wake_obj)},
+    {MP_ROM_QSTR(MP_QSTR_command), MP_ROM_PTR(&camera_command_obj)},
 };
 STATIC MP_DEFINE_CONST_DICT(camera_module_globals, camera_module_globals_table);
 
