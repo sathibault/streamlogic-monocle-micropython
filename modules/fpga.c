@@ -30,19 +30,23 @@
 
 
 STATIC MP_DEFINE_STR_OBJ(camera_str_obj, "camera");
-STATIC MP_DEFINE_STR_OBJ(framebuf_str_obj, "frame buffer");
-STATIC MP_DEFINE_STR_OBJ(fbout0_str_obj, "fb out-0");
-STATIC MP_DEFINE_STR_OBJ(fbout1_str_obj, "fb out-1");
-STATIC MP_DEFINE_STR_OBJ(readout_str_obj, "image readout");
-STATIC MP_DEFINE_STR_OBJ(graphics_ov_str_obj, "graphics overlay");
-STATIC MP_DEFINE_STR_OBJ(text_ov_str_obj, "text overlay");
+STATIC MP_DEFINE_STR_OBJ(framebuf0_str_obj, "frame_buffer0");
+STATIC MP_DEFINE_STR_OBJ(framebuf1_str_obj, "frame_buffer0");
+STATIC MP_DEFINE_STR_OBJ(fbout0_str_obj, "fb_out0");
+STATIC MP_DEFINE_STR_OBJ(fbout1_str_obj, "fb_out1");
+STATIC MP_DEFINE_STR_OBJ(readout0_str_obj, "image_readout0");
+STATIC MP_DEFINE_STR_OBJ(readout1_str_obj, "image_readout1");
+STATIC MP_DEFINE_STR_OBJ(graphics_ov_str_obj, "graphics_overlay");
+STATIC MP_DEFINE_STR_OBJ(text_ov_str_obj, "text_overlay");
 
 STATIC mp_obj_t feature_strings[] = {
   MP_ROM_PTR(&camera_str_obj),
-  MP_ROM_PTR(&framebuf_str_obj),
+  MP_ROM_PTR(&framebuf0_str_obj),
+  MP_ROM_PTR(&framebuf1_str_obj),
   MP_ROM_PTR(&fbout0_str_obj),
   MP_ROM_PTR(&fbout1_str_obj),
-  MP_ROM_PTR(&readout_str_obj),
+  MP_ROM_PTR(&readout0_str_obj),
+  MP_ROM_PTR(&readout1_str_obj),
   MP_ROM_PTR(&graphics_ov_str_obj),
   MP_ROM_PTR(&text_ov_str_obj)
 };
@@ -72,16 +76,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_0(fpga_features_obj, fpga_features);
 STATIC mp_obj_t fpga_read(mp_obj_t addr_16bit, mp_obj_t n)
 {
     if (mp_obj_get_int(n) < 1 || mp_obj_get_int(n) > 255)
-    {
-        mp_raise_ValueError(
-            MP_ERROR_TEXT("n must be between 1 and 255"));
-    }
-
-    // TODO
-    // if (app_fpga_get_power_state() == false)
-    // {
-    //     mp_raise_msg(&mp_type_OSError, "FPGA is not powered");
-    // }
+      mp_raise_ValueError(MP_ERROR_TEXT("n must be between 1 and 255"));
 
     uint16_t addr = mp_obj_get_int(addr_16bit);
     uint8_t addr_bytes[2] = {(uint8_t)(addr >> 8), (uint8_t)addr};
@@ -91,13 +86,41 @@ STATIC mp_obj_t fpga_read(mp_obj_t addr_16bit, mp_obj_t n)
     spi_write(FPGA, addr_bytes, 2, true);
     spi_read(FPGA, buffer, mp_obj_get_int(n));
 
-    mp_obj_t bytes = mp_obj_new_bytes(buffer, mp_obj_get_int(n));
-
-    m_free(buffer);
+    mp_obj_t bytes = mp_obj_new_bytearray_by_ref(mp_obj_get_int(n), buffer);
 
     return bytes;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(fpga_read_obj, fpga_read);
+
+STATIC mp_obj_t fpga_read_strm(mp_obj_t addr_16bit, mp_obj_t len, mp_obj_t chunk_sz)
+{
+  int n = mp_obj_get_int(len);
+  int max_sz = mp_obj_get_int(chunk_sz);
+
+  if (n < 1)
+    mp_raise_ValueError(MP_ERROR_TEXT("n must be geater than 1"));
+
+  if (max_sz < 1 || max_sz > 255)
+    mp_raise_ValueError(MP_ERROR_TEXT("max_size must be between 1 and 255"));
+  
+  uint16_t addr = mp_obj_get_int(addr_16bit);
+  uint8_t addr_bytes[2] = {(uint8_t)(addr >> 8), (uint8_t)addr};
+
+  uint8_t *buffer = m_malloc(n);
+
+  int pos = 0;
+  while (pos < n) {
+    int sz = n - pos;
+    if (sz > max_sz)
+      sz = max_sz;
+    spi_write(FPGA, addr_bytes, 2, true);
+    spi_read(FPGA, buffer + pos, sz);
+    pos += sz;
+  }
+
+  return mp_obj_new_bytearray_by_ref(n, buffer);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_3(fpga_read_strm_obj, fpga_read_strm);
 
 STATIC mp_obj_t fpga_write(mp_obj_t addr_16bit, mp_obj_t bytes)
 {
@@ -195,6 +218,7 @@ STATIC const mp_rom_map_elem_t fpga_module_globals_table[] = {
     {MP_ROM_QSTR(MP_QSTR_features), MP_ROM_PTR(&fpga_features_obj)},
     {MP_ROM_QSTR(MP_QSTR_write), MP_ROM_PTR(&fpga_write_obj)},
     {MP_ROM_QSTR(MP_QSTR_read), MP_ROM_PTR(&fpga_read_obj)},
+    {MP_ROM_QSTR(MP_QSTR_read_strm), MP_ROM_PTR(&fpga_read_strm_obj)},
     {MP_ROM_QSTR(MP_QSTR_power), MP_ROM_PTR(&fpga_power_obj)},
     {MP_ROM_QSTR(MP_QSTR_status), MP_ROM_PTR(&fpga_status_obj)},
 };

@@ -20,15 +20,17 @@ limitations under the License.
 
 typedef enum {
   camera_feat = 0,
-  framebuf_feat = 1,
-  fb_out0_feat = 2,
-  fb_out1_feat = 3,
-  readout_feat = 4,
-  graphics_ov_feat = 5,
-  text_ov_feat = 6
+  framebuf0_feat = 1,
+  framebuf1_feat = 2,
+  fb_out0_feat = 3,
+  fb_out1_feat = 4,
+  readout0_feat = 5,
+  readout1_feat = 6,
+  graphics_ov_feat = 7,
+  text_ov_feat = 8
 } fpga_feat_t;
 
-#define MAX_FEATURES 7
+#define MAX_FEATURES 9
 
 extern uint8_t fpga_feature_addrs[];
 extern void fpga_discovery();
