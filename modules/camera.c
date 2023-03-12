@@ -102,12 +102,21 @@ STATIC mp_obj_t camera_wake(void)
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(camera_wake_obj, camera_wake);
 
+STATIC mp_obj_t readout_dev(mp_obj_t id)
+{
+  int n = mp_obj_get_int(id);
+  uint8_t dev = fpga_feature_dev(readout0_feat+n);
+  return MP_OBJ_NEW_SMALL_INT(dev);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(readout_dev_obj, readout_dev);
+
 STATIC const mp_rom_map_elem_t camera_module_globals_table[] = {
 
     {MP_ROM_QSTR(MP_QSTR_power_on), MP_ROM_PTR(&camera_power_on_obj)},
     {MP_ROM_QSTR(MP_QSTR_sleep), MP_ROM_PTR(&camera_sleep_obj)},
     {MP_ROM_QSTR(MP_QSTR_wake), MP_ROM_PTR(&camera_wake_obj)},
     {MP_ROM_QSTR(MP_QSTR_command), MP_ROM_PTR(&camera_command_obj)},
+    {MP_ROM_QSTR(MP_QSTR_readout_dev), MP_ROM_PTR(&readout_dev_obj)},
 };
 STATIC MP_DEFINE_CONST_DICT(camera_module_globals, camera_module_globals_table);
 

@@ -1,26 +1,16 @@
+# Copyright 2023 StreamLogic, LLC.
 #
-# This file is part of the MicroPython for Monocle project:
-#      https://github.com/brilliantlabsAR/monocle-micropython
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
-# Authored by: Josuah Demangeon (me@josuah.net)
-#              Raj Nakarja / Brilliant Labs Inc (raj@itsbrilliant.co)
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #
-# ISC Licence
-#
-# Copyright © 2023 Brilliant Labs Inc.
-#
-# Permission to use, copy, modify, and/or distribute this software for any
-# purpose with or without fee is hereby granted, provided that the above
-# copyright notice and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
-# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
-# OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-# PERFORMANCE OF THIS SOFTWARE.
-#
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import __camera
 import bluetooth
@@ -29,6 +19,12 @@ import time
 
 def power_on():
   __camera.power_on()
+
+def start():
+    __camera.command(5)
+
+def stop():
+    __camera.command(4)
 
 def overlay(enable):
   if enable == True:
@@ -39,28 +35,41 @@ def overlay(enable):
     time.sleep_ms(100);
     __camera.sleep()
 
-def capture(url):
+class Capture:
+  def __init__(self, dev, dim, blksize):
+    if len(dim) != 3:
+      raise Exception('dim must be an array of [xres, yres, bpp]')
+
+    self.addr = dev*256 + 5
+    self.total = dim[0] * dim[1] * dim[2]
+    self.chunk = (252//dim[2]) * dim[2]
+    self.blksize = blksize * dim[2]
+    self.pos = None
+
+    if self.total % self.blksize != 0:
+      raise Exception('blksize is incompatible with image dimensions')
+
+  def __iter__(self):
+    if self.pos != None:
+      raise Exception('capture already consumed')
+    self.pos = 0
+    return self
+
+  def __next__(self):
+    if self.pos < self.total:
+      buf = fpga.read_strm(self.addr, self.blksize, self.chunk)
+      self.pos += len(buf)
+      return buf
+    raise StopIteration
+
+def capture(dim, blksize, readout_id=0):
   """
-  Captures a single image from the camera, and sends it to a url provided. The
-  function first tries to send over WiFi. If it cannot reach the internet, it
-  will attempt to return it over Bluetooth.
+  Captures a single image from the camera, of the give dimensions from
+  the FB Readout configured for the given blksize.  The dimensions
+  should be given as [xres, yres, bpp]
   """
-  
-  # Start capture using the command 0x5004
-  fpga.write(0x5004, [])
 
-  while True:
-  
-    # Read the bytes remaining in the fifo
-    length_array = fpga.read(0x5000, 2)
-    length = (length_array[0]<<8)+length_array[1] & 0x0FFF
-
-    if length == 0:
-      return
-
-    if length > bluetooth.max_length():
-      length = bluetooth.max_length()
-
-    buffer = fpga.read(0x5010, length)
-
-    bluetooth.send(buffer)
+  dev = __camera.readout_dev(readout_id);
+  addr = dev*256 + 4
+  fpga.write(addr, b'')
+  return Capture(dev, dim, blksize)

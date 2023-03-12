@@ -47,8 +47,11 @@ void fpga_discovery() {
 
   // frame buffers
   addr[0] = 0x20;
-  if (fpga_test_api(addr, &api) && api == 0)
-    fpga_feature_addrs[framebuf_feat] = 0x20;
+  if (fpga_test_api(addr, &api) && api == 0) {
+    fpga_feature_addrs[framebuf0_feat] = addr[0]++;
+    if (fpga_test_api(addr, &api) && api == 0)
+      fpga_feature_addrs[framebuf1_feat] = addr[0];
+  }
 
   // frame buffer out
   addr[0] = 0x30;
@@ -74,9 +77,11 @@ void fpga_discovery() {
 
   // readouts
   addr[0] = 0x50;
-  if (fpga_test_api(addr, &api) && api == 0)
-    fpga_feature_addrs[readout_feat] = 0x50;
-
+  if (fpga_test_api(addr, &api) && api == 0) {
+    fpga_feature_addrs[readout0_feat] = addr[0]++;
+    if (fpga_test_api(addr, &api) && api == 0)
+      fpga_feature_addrs[readout1_feat] = addr[0];
+  }
   discovered = true;
 }
 
