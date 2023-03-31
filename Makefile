@@ -3,11 +3,11 @@
 #      https://github.com/brilliantlabsAR/monocle-micropython
 #
 # Authored by: Josuah Demangeon (me@josuah.net)
-#              Raj Nakarja / Brilliant Labs Inc (raj@itsbrilliant.co)
+#              Raj Nakarja / Brilliant Labs Ltd. (raj@itsbrilliant.co)
 #
 # ISC Licence
 #
-# Copyright © 2023 Brilliant Labs Inc.
+# Copyright © 2023 Brilliant Labs Ltd.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -37,8 +37,8 @@ include micropython/py/py.mk
 # Define the toolchain prefix for ARM GCC
 CROSS_COMPILE = arm-none-eabi-
 
-# Use date and time as build version "vYY.DDD.HHMM"
-BUILD_VERSION = $(shell TZ= date +v%y.%j.%H%M)
+# Use date and time as build version "vYY.DDD.HHMM". := forces evaluation once
+BUILD_VERSION := $(shell TZ= date +v%y.%j.%H%M)
 
 # Warning options
 WARN = -Wall -Werror -Wdouble-promotion -Wfloat-conversion
@@ -66,9 +66,9 @@ DEFS += -DNRF52832_XXAA
 DEFS += -DNDEBUG
 DEFS += -DCONFIG_NFCT_PINS_AS_GPIOS
 DEFS += -DBUILD_VERSION='"$(BUILD_VERSION)"'
+DEFS += -DLFS2_NO_ASSERT
 
 # Set linker options
-LDFLAGS += -nostdlib
 LDFLAGS += -Lnrfx/mdk -T monocle-core/monocle.ld
 LDFLAGS += -Wl,--gc-sections
 LDFLAGS += -Xlinker -Map=$(@:.elf=.map)
@@ -103,20 +103,28 @@ SRC_C += monocle-core/monocle-startup.c
 SRC_C += mphalport.c
 
 SRC_C += micropython/extmod/moduasyncio.c
-SRC_C += micropython/extmod/moduselect.c
 SRC_C += micropython/extmod/modubinascii.c
 SRC_C += micropython/extmod/moduhashlib.c
 SRC_C += micropython/extmod/modujson.c
+SRC_C += micropython/extmod/moduos.c
 SRC_C += micropython/extmod/modurandom.c
 SRC_C += micropython/extmod/modure.c
+SRC_C += micropython/extmod/moduselect.c
 SRC_C += micropython/extmod/utime_mphal.c
+SRC_C += micropython/extmod/vfs_blockdev.c
+SRC_C += micropython/extmod/vfs_lfs.c
+SRC_C += micropython/extmod/vfs_lfsx_file.c
+SRC_C += micropython/extmod/vfs_lfsx.c
+SRC_C += micropython/extmod/vfs_reader.c
+SRC_C += micropython/extmod/vfs.c
+SRC_C += modules/bluetooth.c
 SRC_C += modules/camera.c
 SRC_C += modules/device.c
 SRC_C += modules/display.c
 SRC_C += modules/fpgalib.c
 SRC_C += modules/fpga.c
 SRC_C += modules/led.c
-SRC_C += modules/bluetooth.c
+SRC_C += modules/storage.c
 SRC_C += modules/time.c
 SRC_C += modules/touch.c
 SRC_C += modules/update.c
@@ -163,6 +171,8 @@ SRC_C += micropython/lib/libm/sf_sin.c
 SRC_C += micropython/lib/libm/sf_tan.c
 SRC_C += micropython/lib/libm/wf_lgamma.c
 SRC_C += micropython/lib/libm/wf_tgamma.c
+SRC_C += micropython/lib/littlefs/lfs2_util.c
+SRC_C += micropython/lib/littlefs/lfs2.c
 SRC_C += micropython/lib/uzlib/crc32.c
 
 SRC_C += nrfx/drivers/src/nrfx_clock.c

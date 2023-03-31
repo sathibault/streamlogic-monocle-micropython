@@ -13,9 +13,9 @@
 # limitations under the License.
 
 import __camera
-import bluetooth
-import fpga
-import time
+import bluetooth as __bluetooth
+import fpga as __fpga
+import time as __time
 
 def power_on():
   __camera.power_on()
@@ -28,12 +28,15 @@ def stop():
 
 def overlay(enable):
   if enable == True:
+    __fpga.write(0x4404, "")
+    __time.sleep_ms(100)
     __camera.wake()
     __camera.command(5)
   else:
     __camera.command(4)
     time.sleep_ms(100);
     __camera.sleep()
+    __overlay_state = False
 
 class Capture:
   def __init__(self, dev, dim, blksize):

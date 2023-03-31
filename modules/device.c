@@ -3,11 +3,11 @@
  *      https://github.com/brilliantlabsAR/monocle-micropython
  *
  * Authored by: Josuah Demangeon (me@josuah.net)
- *              Raj Nakarja / Brilliant Labs Inc (raj@itsbrilliant.co)
+ *              Raj Nakarja / Brilliant Labs Ltd. (raj@itsbrilliant.co)
  *
  * ISC Licence
  *
- * Copyright © 2023 Brilliant Labs Inc.
+ * Copyright © 2023 Brilliant Labs Ltd.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -24,13 +24,11 @@
 
 #include <stdio.h>
 #include <math.h>
-
 #include "monocle.h"
-
+#include "storage.h"
 #include "genhdr/mpversion.h"
 #include "py/objstr.h"
 #include "py/runtime.h"
-
 #include "ble_gap.h"
 #include "nrfx_saadc.h"
 
@@ -39,6 +37,9 @@ STATIC const MP_DEFINE_STR_OBJ(device_name_obj, "monocle");
 STATIC const MP_DEFINE_STR_OBJ(device_version_obj, BUILD_VERSION);
 
 STATIC const MP_DEFINE_STR_OBJ(device_git_tag_obj, MICROPY_GIT_HASH);
+
+STATIC const MP_DEFINE_STR_OBJ(
+    device_git_repo_obj, "https://github.com/brilliantlabsAR/monocle-micropython");
 
 STATIC mp_obj_t device_mac_address(void)
 {
@@ -116,7 +117,7 @@ STATIC mp_obj_t device_reset_cause(void)
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(device_reset_cause_obj, device_reset_cause);
 
-STATIC mp_obj_t prevent_sleep(size_t n_args, const mp_obj_t *args)
+STATIC mp_obj_t device_prevent_sleep(size_t n_args, const mp_obj_t *args)
 {
     if (n_args == 0)
     {
@@ -135,7 +136,17 @@ STATIC mp_obj_t prevent_sleep(size_t n_args, const mp_obj_t *args)
 
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(prevent_sleep_obj, 0, 1, prevent_sleep);
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(device_prevent_sleep_obj, 0, 1, device_prevent_sleep);
+
+STATIC mp_obj_t device_force_sleep(void)
+{
+    prevent_sleep_flag = false;
+
+    force_sleep_flag = true;
+
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(device_force_sleep_obj, device_force_sleep);
 
 STATIC const mp_rom_map_elem_t device_module_globals_table[] = {
 
@@ -143,10 +154,13 @@ STATIC const mp_rom_map_elem_t device_module_globals_table[] = {
     {MP_ROM_QSTR(MP_QSTR_mac_address), MP_ROM_PTR(&device_mac_address_obj)},
     {MP_ROM_QSTR(MP_QSTR_VERSION), MP_ROM_PTR(&device_version_obj)},
     {MP_ROM_QSTR(MP_QSTR_GIT_TAG), MP_ROM_PTR(&device_git_tag_obj)},
+    {MP_ROM_QSTR(MP_QSTR_GIT_REPO), MP_ROM_PTR(&device_git_repo_obj)},
     {MP_ROM_QSTR(MP_QSTR_battery_level), MP_ROM_PTR(&device_battery_level_obj)},
     {MP_ROM_QSTR(MP_QSTR_reset), MP_ROM_PTR(&device_reset_obj)},
     {MP_ROM_QSTR(MP_QSTR_reset_cause), MP_ROM_PTR(&device_reset_cause_obj)},
-    {MP_ROM_QSTR(MP_QSTR_prevent_sleep), MP_ROM_PTR(&prevent_sleep_obj)},
+    {MP_ROM_QSTR(MP_QSTR_prevent_sleep), MP_ROM_PTR(&device_prevent_sleep_obj)},
+    {MP_ROM_QSTR(MP_QSTR_force_sleep), MP_ROM_PTR(&device_force_sleep_obj)},
+    {MP_ROM_QSTR(MP_QSTR_Storage), MP_ROM_PTR(&device_storage_type)},
 };
 STATIC MP_DEFINE_CONST_DICT(device_module_globals, device_module_globals_table);
 

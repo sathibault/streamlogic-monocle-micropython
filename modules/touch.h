@@ -3,11 +3,11 @@
  *      https://github.com/brilliantlabsAR/monocle-micropython
  *
  * Authored by: Josuah Demangeon (me@josuah.net)
- *              Raj Nakarja / Brilliant Labs Inc (raj@itsbrilliant.co)
+ *              Raj Nakarja / Brilliant Labs Ltd. (raj@itsbrilliant.co)
  *
  * ISC Licence
  *
- * Copyright © 2023 Brilliant Labs Inc.
+ * Copyright © 2023 Brilliant Labs Ltd.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -26,13 +26,10 @@
 
 typedef enum touch_action_t
 {
-    A_TOUCH,
-    B_TOUCH,
-    A_DEEP_TOUCH,
-    B_DEEP_TOUCH,
-    A_PROXIMITY,
-    B_PROXIMITY,
-    _LEN_TOUCH_ACTION_T,
+    TOUCH_NONE,
+    TOUCH_A,
+    TOUCH_B,
+    TOUCH_BOTH
 } touch_action_t;
 
 void touch_event_handler(touch_action_t action);
