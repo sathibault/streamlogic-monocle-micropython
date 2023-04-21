@@ -114,8 +114,8 @@ STATIC mp_obj_t fpga_read_strm(mp_obj_t addr_16bit, mp_obj_t len, mp_obj_t chunk
     int sz = n - pos;
     if (sz > max_sz)
       sz = max_sz;
-    spi_write(FPGA, addr_bytes, 2, true);
-    spi_read(FPGA, buffer + pos, sz);
+    monocle_spi_write(FPGA, addr_bytes, 2, true);
+    monocle_spi_read(FPGA, buffer + pos, sz, false);
     pos += sz;
   }
 
@@ -157,8 +157,6 @@ STATIC const mp_rom_map_elem_t fpga_module_globals_table[] = {
     {MP_ROM_QSTR(MP_QSTR_write), MP_ROM_PTR(&fpga_write_obj)},
     {MP_ROM_QSTR(MP_QSTR_read), MP_ROM_PTR(&fpga_read_obj)},
     {MP_ROM_QSTR(MP_QSTR_read_strm), MP_ROM_PTR(&fpga_read_strm_obj)},
-    {MP_ROM_QSTR(MP_QSTR_power), MP_ROM_PTR(&fpga_power_obj)},
-    {MP_ROM_QSTR(MP_QSTR_status), MP_ROM_PTR(&fpga_status_obj)},
 };
 STATIC MP_DEFINE_CONST_DICT(fpga_module_globals, fpga_module_globals_table);
 

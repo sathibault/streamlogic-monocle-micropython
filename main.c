@@ -539,7 +539,7 @@ int main(void)
     // Start the FPGA
     {
         // Check flash for a valid FPGA image and set the FPGA MODE1 pin
-        if (fpga_app_exists())
+        if (false/*fpga_app_exists()*/)
         {
             NRFX_LOG("Booting FPGA from SPI flash");
             nrf_gpio_pin_write(FPGA_CS_MODE_PIN, true);
@@ -558,7 +558,7 @@ int main(void)
 
         // Release the mode pin so it can be used as chip select
         nrf_gpio_pin_write(FPGA_CS_MODE_PIN, true);
-
+#if 0
         // Check the FPGA booted correctly by reading the device ID
         uint8_t device_id_command[2] = {0x00, 0x01};
         uint8_t device_id_response[1];
@@ -585,6 +585,7 @@ int main(void)
 
             // TODO append health register
         }
+#endif
     }
 
     // TODO why is this delay needed?

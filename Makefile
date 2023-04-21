@@ -129,8 +129,8 @@ SRC_C += modules/time.c
 SRC_C += modules/touch.c
 SRC_C += modules/update.c
 
-SRC_C += modules/vgr2dlib.c
-SRC_C += modules/modgraphics.c
+SRC_C += vgrs/src/vgr2dlib.c
+SRC_C += vgrs/src/modvgr2d.c
 
 SRC_C += segger/SEGGER_RTT_printf.c
 SRC_C += segger/SEGGER_RTT_Syscalls_GCC.c

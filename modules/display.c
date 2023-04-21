@@ -107,7 +107,7 @@ STATIC mp_obj_t display_power_on() {
     {
       uint8_t command[2] = {display_config[i].address,
 			    display_config[i].value};
-      spi_write(DISPLAY, command, 2, false);
+      monocle_spi_write(DISPLAY, command, 2, false);
     }
   return mp_obj_new_bool(true);
 }
@@ -319,7 +319,7 @@ static inline int16_t intersect_ellipsis(int16_t y,
 {
     // |     Intersection with this slice
     // |     that we want to compute.
-    // |      : 
+    // |      :
     // +--.._ :              Slice of the screen that
     // y======a===========   we are rendering at this
     // |     /: '.           step
@@ -330,7 +330,7 @@ static inline int16_t intersect_ellipsis(int16_t y,
     // |/     :        :
     // c------x--------+---
     //
-    // We know the radius and 
+    // We know the radius and
     int16_t radius = obj->width / 2;
     int16_t slice_y = obj->y + obj->height / 2 - y;
     int16_t ;

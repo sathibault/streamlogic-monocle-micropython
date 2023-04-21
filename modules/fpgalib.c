@@ -25,8 +25,8 @@ uint8_t fpga_feature_addrs[MAX_FEATURES] = {0};
 static bool fpga_test_api(uint8_t *addr, uint8_t *api) {
   uint8_t status;
 
-  spi_write(FPGA, addr, 2, true /* hold CS for read */);
-  spi_read(FPGA, &status, 1);
+  monocle_spi_write(FPGA, addr, 2, true /* hold CS for read */);
+  monocle_spi_read(FPGA, &status, 1, false);
   *api = status >> 5;
 
   return (status & 0x10) != 0;
@@ -100,5 +100,5 @@ uint8_t fpga_graphics_dev() {
 }
 
 void fpga_write_internal(uint8_t *buf, unsigned int len, bool hold) {
-  spi_write(FPGA, buf, len, hold);
+  monocle_spi_write(FPGA, buf, len, hold);
 }

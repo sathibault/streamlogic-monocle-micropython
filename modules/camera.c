@@ -38,7 +38,7 @@ STATIC mp_obj_t camera_power_on() {
 
   uint8_t cam_dev = fpga_feature_dev(camera_feat);
   uint8_t command[2] = {cam_dev, 0x09};
-  spi_write(FPGA, command, 2, false);
+  monocle_spi_write(FPGA, command, 2, false);
 
   // Reset sequence taken from Datasheet figure 2-3
   nrf_gpio_pin_write(CAMERA_RESET_PIN, false);
@@ -50,7 +50,7 @@ STATIC mp_obj_t camera_power_on() {
   nrfx_systick_delay_ms(20); // t4
 
   // Read the camera CID (one of them)
-  i2c_response_t resp = i2c_read(CAMERA_I2C_ADDRESS, 0x300A, 0xFF);
+  i2c_response_t resp = monocle_i2c_read(CAMERA_I2C_ADDRESS, 0x300A, 0xFF);
   if (resp.fail || resp.value != 0x56)
     {
       NRFX_LOG_ERROR("Error: Camera not found.");
@@ -58,7 +58,7 @@ STATIC mp_obj_t camera_power_on() {
     }
 
   // Software reset
-  i2c_write(CAMERA_I2C_ADDRESS, 0x3008, 0xFF, 0x82);
+  monocle_i2c_write(CAMERA_I2C_ADDRESS, 0x3008, 0xFF, 0x82);
   nrfx_systick_delay_ms(5);
 
   // Send the default configuration
@@ -66,7 +66,7 @@ STATIC mp_obj_t camera_power_on() {
        i < sizeof(camera_config) / sizeof(camera_config_t);
        i++)
     {
-      i2c_write(CAMERA_I2C_ADDRESS,
+      monocle_i2c_write(CAMERA_I2C_ADDRESS,
 		camera_config[i].address,
 		0xFF,
 		camera_config[i].value);
@@ -83,7 +83,7 @@ STATIC mp_obj_t camera_command(mp_obj_t cmd) {
 
   uint8_t cam_dev = fpga_feature_dev(camera_feat);
   uint8_t command[2] = {cam_dev, mp_obj_get_int(cmd)};
-  spi_write(FPGA, command, 2, false);
+  monocle_spi_write(FPGA, command, 2, false);
   return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(camera_command_obj, camera_command);
