@@ -80,6 +80,7 @@ INC += -Imicropython
 INC += -Imicropython/lib/cmsis/inc
 INC += -Imicropython/shared/readline
 INC += -Imodules
+INC += -Imodules/libvgrs/src
 INC += -Imonocle-core
 INC += -Inrfx
 INC += -Inrfx/drivers

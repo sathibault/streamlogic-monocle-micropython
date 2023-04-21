@@ -25,11 +25,9 @@
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <string.h>
 
 #include "monocle.h"
 #include "bluetooth.h"
-#include "update.h"
 #include "touch.h"
 
 #include "genhdr/mpversion.h"
@@ -42,6 +40,7 @@
 #include "py/repl.h"
 #include "py/runtime.h"
 #include "py/stackctrl.h"
+#include "py/stream.h"
 #include "shared/readline/readline.h"
 #include "shared/runtime/interrupt_char.h"
 #include "shared/runtime/pyexec.h"
@@ -91,7 +90,7 @@ static struct advertising_data_t
     .payload = {0},
 };
 
-#define BLE_PREFERRED_MAX_MTU 128
+#define BLE_PREFERRED_MAX_MTU 256
 uint16_t ble_negotiated_mtu;
 
 static struct ble_ring_buffer_t
@@ -272,6 +271,11 @@ int mp_hal_stdin_rx_chr(void)
     repl_rx.tail = next;
 
     return character;
+}
+
+uintptr_t mp_hal_stdio_poll(uintptr_t poll_flags)
+{
+    return (repl_rx.head == repl_rx.tail) ? poll_flags & MP_STREAM_POLL_RD : 0;
 }
 
 static void touch_interrupt_handler(nrfx_gpiote_pin_t pin,
@@ -537,56 +541,7 @@ int main(void)
     monocle_critical_startup();
 
     // Start the FPGA
-    {
-        // Check flash for a valid FPGA image and set the FPGA MODE1 pin
-        if (false/*fpga_app_exists()*/)
-        {
-            NRFX_LOG("Booting FPGA from SPI flash");
-            nrf_gpio_pin_write(FPGA_CS_MODE_PIN, true);
-        }
-        else
-        {
-            NRFX_LOG("Booting FPGA from internal flash");
-            nrf_gpio_pin_write(FPGA_CS_MODE_PIN, false);
-        }
-
-        // Boot
-        monocle_spi_enable(false);
-        nrf_gpio_pin_write(FPGA_RESET_INT_PIN, true);
-        nrfx_systick_delay_ms(200); // Should boot within 142ms @ 25MHz
-        monocle_spi_enable(true);
-
-        // Release the mode pin so it can be used as chip select
-        nrf_gpio_pin_write(FPGA_CS_MODE_PIN, true);
-#if 0
-        // Check the FPGA booted correctly by reading the device ID
-        uint8_t device_id_command[2] = {0x00, 0x01};
-        uint8_t device_id_response[1];
-        monocle_spi_write(FPGA, device_id_command, 2, true);
-        monocle_spi_read(FPGA, device_id_response, sizeof(device_id_response),
-                         false);
-
-        if (device_id_response[0] != 0x4B)
-        {
-            NRFX_LOG("FPGA didn't boot");
-
-            // If failure, turn off and hold the FPGA in reset
-            monocle_fpga_power(false);
-            nrf_gpio_pin_write(FPGA_RESET_INT_PIN, false);
-            nrfx_systick_delay_ms(25);
-
-            // Turn rails back on so we can use the flash again
-            monocle_fpga_power(true);
-            nrfx_systick_delay_ms(25);
-
-            // Wake up the flash
-            uint8_t wakeup_device_id[] = {0xAB, 0, 0, 0};
-            monocle_spi_write(FLASH, wakeup_device_id, 4, false);
-
-            // TODO append health register
-        }
-#endif
-    }
+    monocle_fpga_reset(true);
 
     // TODO why is this delay needed?
     nrfx_systick_delay_ms(500);
@@ -669,10 +624,10 @@ int main(void)
         cfg.conn_cfg.params.gatt_conn_cfg.att_mtu = BLE_PREFERRED_MAX_MTU;
         app_err(sd_ble_cfg_set(BLE_CONN_CFG_GATT, &cfg, ram_start));
 
-        // Configure a single queued transfer
+        // Configure two queued transfers
         memset(&cfg, 0, sizeof(cfg));
         cfg.conn_cfg.conn_cfg_tag = 1;
-        cfg.conn_cfg.params.gatts_conn_cfg.hvn_tx_queue_size = 1;
+        cfg.conn_cfg.params.gatts_conn_cfg.hvn_tx_queue_size = 2;
         app_err(sd_ble_cfg_set(BLE_CONN_CFG_GATTS, &cfg, ram_start));
 
         // Configure number of custom UUIDs
@@ -682,7 +637,7 @@ int main(void)
 
         // Configure GATTS attribute table
         memset(&cfg, 0, sizeof(cfg));
-        cfg.gatts_cfg.attr_tab_size.attr_tab_size = 1408;
+        cfg.gatts_cfg.attr_tab_size.attr_tab_size = 365 * 4; // multiples of 4
         app_err(sd_ble_cfg_set(BLE_GATTS_CFG_ATTR_TAB_SIZE, &cfg, ram_start));
 
         // No service changed attribute needed
@@ -693,8 +648,7 @@ int main(void)
         // Start the Softdevice
         app_err(sd_ble_enable(&ram_start));
 
-        NRFX_LOG("Softdevice using 0x%x bytes of RAM",
-                 ram_start - 0x20000000);
+        NRFX_LOG("Softdevice using 0x%x bytes of RAM", ram_start - 0x20000000);
 
         // Set security to open // TODO make this paired
         ble_gap_conn_sec_mode_t sec_mode;
@@ -856,47 +810,49 @@ int main(void)
         app_err(sd_ble_gap_adv_start(ble_handles.advertising, 1));
     }
 
-    // Initialise the stack pointer for the main thread
-    mp_stack_set_top(&_stack_top);
-
-    // Set the stack limit as smaller than the real stack so we can recover
-    mp_stack_set_limit((char *)&_stack_top - (char *)&_stack_bot - 400);
-
-    // Start garbage collection, micropython and the REPL
-    gc_init(&_heap_start, &_heap_end);
-    mp_init();
-    readline_init0();
-
-    // Mount the filesystem, or format if needed
-    pyexec_frozen_module("_mountfs.py");
-
-    // Run the user's main file if it exists
-    pyexec_file_if_exists("main.py");
-
-    // Stay in the friendly or raw REPL until a reset is called
-    for (;;)
+    // Soft resets will always restart micropython,
+    while (true)
     {
-        if (pyexec_mode_kind == PYEXEC_MODE_RAW_REPL)
-        {
-            if (pyexec_raw_repl() != 0)
-            {
-                break;
-            }
-        }
-        else
-        {
-            if (pyexec_friendly_repl() != 0)
-            {
-                break;
-            }
-        }
-    }
+        // Initialise the stack pointer for the main thread
+        mp_stack_set_top(&_stack_top);
 
-    // On exit, clean up and reset
-    gc_sweep_all();
-    mp_deinit();
-    sd_softdevice_disable();
-    NVIC_SystemReset();
+        // Set the stack limit as smaller than the real stack so we can recover
+        mp_stack_set_limit((char *)&_stack_top - (char *)&_stack_bot - 400);
+
+        // Start garbage collection, micropython and the REPL
+        gc_init(&_heap_start, &_heap_end);
+        mp_init();
+        readline_init0();
+
+        // Mount the filesystem, or format if needed
+        pyexec_frozen_module("_mountfs.py", false);
+
+        // Run the user's main file if it exists
+        pyexec_file_if_exists("main.py");
+
+        // Stay in the friendly or raw REPL until a reset is called
+        for (;;)
+        {
+            if (pyexec_mode_kind == PYEXEC_MODE_RAW_REPL)
+            {
+                if (pyexec_raw_repl() != 0)
+                {
+                    break;
+                }
+            }
+            else
+            {
+                if (pyexec_friendly_repl() != 0)
+                {
+                    break;
+                }
+            }
+        }
+
+        // On exit, clean up before reset
+        gc_sweep_all();
+        mp_deinit();
+    }
 }
 
 void mp_event_poll_hook(void)
