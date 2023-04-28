@@ -374,6 +374,7 @@ void SD_EVT_IRQHandler(void)
         {
 
         case BLE_GAP_EVT_CONNECTED:
+        NRFX_LOG("BLE_GAP_EVT_CONNECTED:");
         {
             ble_handles.connection = ble_evt->evt.gap_evt.conn_handle;
 
@@ -390,6 +391,7 @@ void SD_EVT_IRQHandler(void)
         }
 
         case BLE_GAP_EVT_DISCONNECTED:
+        NRFX_LOG("BLE_GAP_EVT_DISCONNECTED:");
         {
             ble_handles.connection = BLE_CONN_HANDLE_INVALID;
             app_err(sd_ble_gap_adv_start(ble_handles.advertising, 1));
@@ -397,6 +399,7 @@ void SD_EVT_IRQHandler(void)
         }
 
         case BLE_GAP_EVT_PHY_UPDATE_REQUEST:
+        NRFX_LOG("BLE_GAP_EVT_PHY_UPDATE_REQUEST:");
         {
             ble_gap_phys_t const phys = {
                 .rx_phys = BLE_GAP_PHY_1MBPS,
@@ -408,6 +411,7 @@ void SD_EVT_IRQHandler(void)
         }
 
         case BLE_GATTS_EVT_EXCHANGE_MTU_REQUEST:
+        NRFX_LOG("BLE_GATTS_EVT_EXCHANGE_MTU_REQUEST:");
         {
             // The client's desired MTU size
             uint16_t client_mtu =
@@ -426,6 +430,7 @@ void SD_EVT_IRQHandler(void)
         }
 
         case BLE_GATTS_EVT_WRITE:
+        NRFX_LOG("BLE_GATTS_EVT_WRITE:");
         {
             // If REPL service
             if (ble_evt->evt.gatts_evt.params.write.handle ==
@@ -478,6 +483,7 @@ void SD_EVT_IRQHandler(void)
         }
 
         case BLE_GATTS_EVT_TIMEOUT:
+        NRFX_LOG("BLE_GATTS_EVT_TIMEOUT:");
         {
             app_err(sd_ble_gap_disconnect(
                 ble_handles.connection,
@@ -486,6 +492,7 @@ void SD_EVT_IRQHandler(void)
         }
 
         case BLE_GATTS_EVT_SYS_ATTR_MISSING:
+        NRFX_LOG("BLE_GATTS_EVT_SYS_ATTR_MISSING:");
         {
             app_err(sd_ble_gatts_sys_attr_set(ble_handles.connection,
                                               NULL,
@@ -495,6 +502,7 @@ void SD_EVT_IRQHandler(void)
         }
 
         case BLE_GAP_EVT_DATA_LENGTH_UPDATE_REQUEST:
+        NRFX_LOG("BLE_GAP_EVT_DATA_LENGTH_UPDATE_REQUEST:");
         {
             app_err(sd_ble_gap_data_length_update(ble_handles.connection,
                                                   NULL,
@@ -503,6 +511,7 @@ void SD_EVT_IRQHandler(void)
         }
 
         case BLE_GAP_EVT_SEC_PARAMS_REQUEST:
+        NRFX_LOG("BLE_GAP_EVT_SEC_PARAMS_REQUEST:");
         {
             // TODO enabling pairing later
             app_err(sd_ble_gap_sec_params_reply(
@@ -514,13 +523,20 @@ void SD_EVT_IRQHandler(void)
         }
 
         case BLE_GAP_EVT_CONN_PARAM_UPDATE:
-        case BLE_GAP_EVT_PHY_UPDATE:
-        case BLE_GAP_EVT_DATA_LENGTH_UPDATE:
-        case BLE_GATTS_EVT_HVN_TX_COMPLETE:
-        {
-            // Unused events
+        NRFX_LOG("BLE_GAP_EVT_CONN_PARAM_UPDATE:");
             break;
-        }
+
+        case BLE_GAP_EVT_PHY_UPDATE:
+        NRFX_LOG("BLE_GAP_EVT_PHY_UPDATE:");
+            break;
+
+        case BLE_GAP_EVT_DATA_LENGTH_UPDATE:
+        NRFX_LOG("BLE_GAP_EVT_DATA_LENGTH_UPDATE:");
+            break;
+
+        case BLE_GATTS_EVT_HVN_TX_COMPLETE:
+        NRFX_LOG("BLE_GATTS_EVT_HVN_TX_COMPLETE:");
+            break;
 
         default:
         {
